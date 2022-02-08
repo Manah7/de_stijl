@@ -31,158 +31,209 @@
  * Some remarks:
  * 1- This program is mostly a template. It shows you how to create tasks, semaphore
  *   message queues, mutex ... and how to use them
- * 
+ *
  * 2- semDumber is, as name say, useless. Its goal is only to show you how to use semaphore
- * 
+ *
  * 3- Data flow is probably not optimal
- * 
+ *
  * 4- Take into account that ComRobot::Write will block your task when serial buffer is full,
  *   time for internal buffer to flush
- * 
+ *
  * 5- Same behavior existe for ComMonitor::Write !
- * 
+ *
  * 6- When you want to write something in terminal, use cout and terminate with endl and flush
- * 
+ *
  * 7- Good luck !
  */
 
 /**
- * @brief Initialisation des structures de l'application (tâches, mutex, 
+ * @brief Initialisation des structures de l'application (tâches, mutex,
  * semaphore, etc.)
  */
-void Tasks::Init() {
+void Tasks::Init()
+{
     int status;
     int err;
 
     /**************************************************************************************/
     /* 	Mutex creation                                                                    */
     /**************************************************************************************/
-    if (err = rt_mutex_create(&mutex_monitor, NULL)) {
-        cerr << "Error mutex create: " << strerror(-err) << endl << flush;
+    if (err = rt_mutex_create(&mutex_monitor, NULL))
+    {
+        cerr << "Error mutex create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_mutex_create(&mutex_robot, NULL)) {
-        cerr << "Error mutex create: " << strerror(-err) << endl << flush;
+    if (err = rt_mutex_create(&mutex_robot, NULL))
+    {
+        cerr << "Error mutex create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_mutex_create(&mutex_robotStarted, NULL)) {
-        cerr << "Error mutex create: " << strerror(-err) << endl << flush;
+    if (err = rt_mutex_create(&mutex_robotStarted, NULL))
+    {
+        cerr << "Error mutex create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_mutex_create(&mutex_move, NULL)) {
-        cerr << "Error mutex create: " << strerror(-err) << endl << flush;
+    if (err = rt_mutex_create(&mutex_move, NULL))
+    {
+        cerr << "Error mutex create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    cout << "Mutexes created successfully" << endl << flush;
+    cout << "Mutexes created successfully" << endl
+         << flush;
 
     /**************************************************************************************/
     /* 	Semaphors creation       							  */
     /**************************************************************************************/
-    if (err = rt_sem_create(&sem_barrier, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+    if (err = rt_sem_create(&sem_barrier, NULL, 0, S_FIFO))
+    {
+        cerr << "Error semaphore create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_sem_create(&sem_openComRobot, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+    if (err = rt_sem_create(&sem_openComRobot, NULL, 0, S_FIFO))
+    {
+        cerr << "Error semaphore create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_sem_create(&sem_serverOk, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+    if (err = rt_sem_create(&sem_serverOk, NULL, 0, S_FIFO))
+    {
+        cerr << "Error semaphore create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_sem_create(&sem_startRobot, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+    if (err = rt_sem_create(&sem_startRobot, NULL, 0, S_FIFO))
+    {
+        cerr << "Error semaphore create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    cout << "Semaphores created successfully" << endl << flush;
+    cout << "Semaphores created successfully" << endl
+         << flush;
 
     /**************************************************************************************/
     /* Tasks creation                                                                     */
     /**************************************************************************************/
-    if (err = rt_task_create(&th_server, "th_server", 0, PRIORITY_TSERVER, 0)) {
-        cerr << "Error task create: " << strerror(-err) << endl << flush;
+    if (err = rt_task_create(&th_server, "th_server", 0, PRIORITY_TSERVER, 0))
+    {
+        cerr << "Error task create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_sendToMon, "th_sendToMon", 0, PRIORITY_TSENDTOMON, 0)) {
-        cerr << "Error task create: " << strerror(-err) << endl << flush;
+    if (err = rt_task_create(&th_sendToMon, "th_sendToMon", 0, PRIORITY_TSENDTOMON, 0))
+    {
+        cerr << "Error task create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_receiveFromMon, "th_receiveFromMon", 0, PRIORITY_TRECEIVEFROMMON, 0)) {
-        cerr << "Error task create: " << strerror(-err) << endl << flush;
+    if (err = rt_task_create(&th_receiveFromMon, "th_receiveFromMon", 0, PRIORITY_TRECEIVEFROMMON, 0))
+    {
+        cerr << "Error task create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_openComRobot, "th_openComRobot", 0, PRIORITY_TOPENCOMROBOT, 0)) {
-        cerr << "Error task create: " << strerror(-err) << endl << flush;
+    if (err = rt_task_create(&th_openComRobot, "th_openComRobot", 0, PRIORITY_TOPENCOMROBOT, 0))
+    {
+        cerr << "Error task create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_startRobot, "th_startRobot", 0, PRIORITY_TSTARTROBOT, 0)) {
-        cerr << "Error task create: " << strerror(-err) << endl << flush;
+    if (err = rt_task_create(&th_startRobot, "th_startRobot", 0, PRIORITY_TSTARTROBOT, 0))
+    {
+        cerr << "Error task create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_move, "th_move", 0, PRIORITY_TMOVE, 0)) {
-        cerr << "Error task create: " << strerror(-err) << endl << flush;
+    if (err = rt_task_create(&th_move, "th_move", 0, PRIORITY_TMOVE, 0))
+    {
+        cerr << "Error task create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    cout << "Tasks created successfully" << endl << flush;
+    cout << "Tasks created successfully" << endl
+         << flush;
 
     /**************************************************************************************/
     /* Message queues creation                                                            */
     /**************************************************************************************/
-    if ((err = rt_queue_create(&q_messageToMon, "q_messageToMon", sizeof (Message*)*50, Q_UNLIMITED, Q_FIFO)) < 0) {
-        cerr << "Error msg queue create: " << strerror(-err) << endl << flush;
+    if ((err = rt_queue_create(&q_messageToMon, "q_messageToMon", sizeof(Message *) * 50, Q_UNLIMITED, Q_FIFO)) < 0)
+    {
+        cerr << "Error msg queue create: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    cout << "Queues created successfully" << endl << flush;
-
+    cout << "Queues created successfully" << endl
+         << flush;
 }
 
 /**
  * @brief Démarrage des tâches
  */
-void Tasks::Run() {
+void Tasks::Run()
+{
     rt_task_set_priority(NULL, T_LOPRIO);
     int err;
 
-    if (err = rt_task_start(&th_server, (void(*)(void*)) & Tasks::ServerTask, this)) {
-        cerr << "Error task start: " << strerror(-err) << endl << flush;
+    if (err = rt_task_start(&th_server, (void (*)(void *)) & Tasks::ServerTask, this))
+    {
+        cerr << "Error task start: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_sendToMon, (void(*)(void*)) & Tasks::SendToMonTask, this)) {
-        cerr << "Error task start: " << strerror(-err) << endl << flush;
+    if (err = rt_task_start(&th_sendToMon, (void (*)(void *)) & Tasks::SendToMonTask, this))
+    {
+        cerr << "Error task start: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_receiveFromMon, (void(*)(void*)) & Tasks::ReceiveFromMonTask, this)) {
-        cerr << "Error task start: " << strerror(-err) << endl << flush;
+    if (err = rt_task_start(&th_receiveFromMon, (void (*)(void *)) & Tasks::ReceiveFromMonTask, this))
+    {
+        cerr << "Error task start: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_openComRobot, (void(*)(void*)) & Tasks::OpenComRobot, this)) {
-        cerr << "Error task start: " << strerror(-err) << endl << flush;
+    if (err = rt_task_start(&th_openComRobot, (void (*)(void *)) & Tasks::OpenComRobot, this))
+    {
+        cerr << "Error task start: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_startRobot, (void(*)(void*)) & Tasks::StartRobotTask, this)) {
-        cerr << "Error task start: " << strerror(-err) << endl << flush;
+    if (err = rt_task_start(&th_startRobot, (void (*)(void *)) & Tasks::StartRobotTask, this))
+    {
+        cerr << "Error task start: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_move, (void(*)(void*)) & Tasks::MoveTask, this)) {
-        cerr << "Error task start: " << strerror(-err) << endl << flush;
+    if (err = rt_task_start(&th_move, (void (*)(void *)) & Tasks::MoveTask, this))
+    {
+        cerr << "Error task start: " << strerror(-err) << endl
+             << flush;
         exit(EXIT_FAILURE);
     }
 
-    cout << "Tasks launched" << endl << flush;
+    cout << "Tasks launched" << endl
+         << flush;
 }
 
 /**
  * @brief Arrêt des tâches
  */
-void Tasks::Stop() {
+void Tasks::Stop()
+{
     monitor.Close();
     robot.Close();
 }
 
 /**
  */
-void Tasks::Join() {
-    cout << "Tasks synchronized" << endl << flush;
+void Tasks::Join()
+{
+    cout << "Tasks synchronized" << endl
+         << flush;
     rt_sem_broadcast(&sem_barrier);
     pause();
 }
@@ -190,10 +241,12 @@ void Tasks::Join() {
 /**
  * @brief Thread handling server communication with the monitor.
  */
-void Tasks::ServerTask(void *arg) {
+void Tasks::ServerTask(void *arg)
+{
     int status;
-    
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+
+    cout << "Start " << __PRETTY_FUNCTION__ << endl
+         << flush;
     // Synchronization barrier (waiting that all tasks are started)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
@@ -206,21 +259,24 @@ void Tasks::ServerTask(void *arg) {
 
     cout << "Open server on port " << (SERVER_PORT) << " (" << status << ")" << endl;
 
-    if (status < 0) throw std::runtime_error {
-        "Unable to start server on port " + std::to_string(SERVER_PORT)
-    };
+    if (status < 0)
+        throw std::runtime_error{
+            "Unable to start server on port " + std::to_string(SERVER_PORT)};
     monitor.AcceptClient(); // Wait the monitor client
-    cout << "Rock'n'Roll baby, client accepted!" << endl << flush;
+    cout << "Rock'n'Roll baby, client accepted!" << endl
+         << flush;
     rt_sem_broadcast(&sem_serverOk);
 }
 
 /**
  * @brief Thread sending data to monitor.
  */
-void Tasks::SendToMonTask(void* arg) {
+void Tasks::SendToMonTask(void *arg)
+{
     Message *msg;
-    
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+
+    cout << "Start " << __PRETTY_FUNCTION__ << endl
+         << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
@@ -229,10 +285,13 @@ void Tasks::SendToMonTask(void* arg) {
     /**************************************************************************************/
     rt_sem_p(&sem_serverOk, TM_INFINITE);
 
-    while (1) {
-        cout << "wait msg to send" << endl << flush;
+    while (1)
+    {
+        cout << "wait msg to send" << endl
+             << flush;
         msg = ReadInQueue(&q_messageToMon);
-        cout << "Send msg to mon: " << msg->ToString() << endl << flush;
+        cout << "Send msg to mon: " << msg->ToString() << endl
+             << flush;
         rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
         monitor.Write(msg); // The message is deleted with the Write
         rt_mutex_release(&mutex_monitor);
@@ -242,71 +301,90 @@ void Tasks::SendToMonTask(void* arg) {
 /**
  * @brief Thread receiving data from monitor.
  */
-void Tasks::ReceiveFromMonTask(void *arg) {
+void Tasks::ReceiveFromMonTask(void *arg)
+{
     Message *msgRcv;
-    
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+
+    cout << "Start " << __PRETTY_FUNCTION__ << endl
+         << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
+
     /**************************************************************************************/
     /* The task receiveFromMon starts here                                                */
     /**************************************************************************************/
     rt_sem_p(&sem_serverOk, TM_INFINITE);
-    cout << "Received message from monitor activated" << endl << flush;
+    cout << "Received message from monitor activated" << endl
+         << flush;
 
-    while (1) {
+    while (1)
+    {
         msgRcv = monitor.Read();
-        cout << "Rcv <= " << msgRcv->ToString() << endl << flush;
+        cout << "Rcv <= " << msgRcv->ToString() << endl
+             << flush;
 
-        if (msgRcv->CompareID(MESSAGE_MONITOR_LOST)) {
-            delete(msgRcv);
+        if (msgRcv->CompareID(MESSAGE_MONITOR_LOST))
+        {
+            delete (msgRcv);
             exit(-1);
-        } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
+        }
+        else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN))
+        {
             rt_sem_v(&sem_openComRobot);
-        } else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
+        }
+        else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD))
+        {
             rt_sem_v(&sem_startRobot);
-        } else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
-                msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
-                msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
-                msgRcv->CompareID(MESSAGE_ROBOT_GO_RIGHT) ||
-                msgRcv->CompareID(MESSAGE_ROBOT_STOP)) {
+        }
+        else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
+                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
+                 msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
+                 msgRcv->CompareID(MESSAGE_ROBOT_GO_RIGHT) ||
+                 msgRcv->CompareID(MESSAGE_ROBOT_STOP))
+        {
 
             rt_mutex_acquire(&mutex_move, TM_INFINITE);
             move = msgRcv->GetID();
             rt_mutex_release(&mutex_move);
         }
-        delete(msgRcv); // mus be deleted manually, no consumer
+        delete (msgRcv); // mus be deleted manually, no consumer
     }
 }
 
 /**
  * @brief Thread opening communication with the robot.
  */
-void Tasks::OpenComRobot(void *arg) {
+void Tasks::OpenComRobot(void *arg)
+{
     int status;
     int err;
 
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    cout << "Start " << __PRETTY_FUNCTION__ << endl
+         << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
+
     /**************************************************************************************/
     /* The task openComRobot starts here                                                  */
     /**************************************************************************************/
-    while (1) {
+    while (1)
+    {
         rt_sem_p(&sem_openComRobot, TM_INFINITE);
         cout << "Open serial com (";
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
         status = robot.Open();
         rt_mutex_release(&mutex_robot);
         cout << status;
-        cout << ")" << endl << flush;
+        cout << ")" << endl
+             << flush;
 
-        Message * msgSend;
-        if (status < 0) {
+        Message *msgSend;
+        if (status < 0)
+        {
             msgSend = new Message(MESSAGE_ANSWER_NACK);
-        } else {
+        }
+        else
+        {
             msgSend = new Message(MESSAGE_ANSWER_ACK);
         }
         WriteInQueue(&q_messageToMon, msgSend); // msgSend will be deleted by sendToMon
@@ -316,17 +394,20 @@ void Tasks::OpenComRobot(void *arg) {
 /**
  * @brief Thread starting the communication with the robot.
  */
-void Tasks::StartRobotTask(void *arg) {
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+void Tasks::StartRobotTask(void *arg)
+{
+    cout << "Start " << __PRETTY_FUNCTION__ << endl
+         << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
+
     /**************************************************************************************/
     /* The task startRobot starts here                                                    */
     /**************************************************************************************/
-    while (1) {
+    while (1)
+    {
 
-        Message * msgSend;
+        Message *msgSend;
         rt_sem_p(&sem_startRobot, TM_INFINITE);
         cout << "Start robot without watchdog (";
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
@@ -335,10 +416,12 @@ void Tasks::StartRobotTask(void *arg) {
         cout << msgSend->GetID();
         cout << ")" << endl;
 
-        cout << "Movement answer: " << msgSend->ToString() << endl << flush;
-        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
+        cout << "Movement answer: " << msgSend->ToString() << endl
+             << flush;
+        WriteInQueue(&q_messageToMon, msgSend); // msgSend will be deleted by sendToMon
 
-        if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
+        if (msgSend->GetID() == MESSAGE_ANSWER_ACK)
+        {
             rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
             robotStarted = 1;
             rt_mutex_release(&mutex_robotStarted);
@@ -349,37 +432,42 @@ void Tasks::StartRobotTask(void *arg) {
 /**
  * @brief Thread handling control of the robot.
  */
-void Tasks::MoveTask(void *arg) {
+void Tasks::MoveTask(void *arg)
+{
     int rs;
     int cpMove;
-    
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+
+    cout << "Start " << __PRETTY_FUNCTION__ << endl
+         << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
+
     /**************************************************************************************/
     /* The task starts here                                                               */
     /**************************************************************************************/
     rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
-    while (1) {
+    while (1)
+    {
         rt_task_wait_period(NULL);
         cout << "Periodic movement update";
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
-        if (rs == 1) {
+        if (rs == 1)
+        {
             rt_mutex_acquire(&mutex_move, TM_INFINITE);
             cpMove = move;
             rt_mutex_release(&mutex_move);
-            
+
             cout << " move: " << cpMove;
-            
+
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             robot.Write(new Message((MessageID)cpMove));
             rt_mutex_release(&mutex_robot);
         }
-        cout << endl << flush;
+        cout << endl
+             << flush;
     }
 }
 
@@ -388,10 +476,13 @@ void Tasks::MoveTask(void *arg) {
  * @param queue Queue identifier
  * @param msg Message to be stored
  */
-void Tasks::WriteInQueue(RT_QUEUE *queue, Message *msg) {
+void Tasks::WriteInQueue(RT_QUEUE *queue, Message *msg)
+{
     int err;
-    if ((err = rt_queue_write(queue, (const void *) &msg, sizeof ((const void *) &msg), Q_NORMAL)) < 0) {
-        cerr << "Write in queue failed: " << strerror(-err) << endl << flush;
+    if ((err = rt_queue_write(queue, (const void *)&msg, sizeof((const void *)&msg), Q_NORMAL)) < 0)
+    {
+        cerr << "Write in queue failed: " << strerror(-err) << endl
+             << flush;
         throw std::runtime_error{"Error in write in queue"};
     }
 }
@@ -401,17 +492,86 @@ void Tasks::WriteInQueue(RT_QUEUE *queue, Message *msg) {
  * @param queue Queue identifier
  * @return Message read
  */
-Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
+Message *Tasks::ReadInQueue(RT_QUEUE *queue)
+{
     int err;
     Message *msg;
 
-    if ((err = rt_queue_read(queue, &msg, sizeof ((void*) &msg), TM_INFINITE)) < 0) {
-        cout << "Read in queue failed: " << strerror(-err) << endl << flush;
+    if ((err = rt_queue_read(queue, &msg, sizeof((void *)&msg), TM_INFINITE)) < 0)
+    {
+        cout << "Read in queue failed: " << strerror(-err) << endl
+             << flush;
         throw std::runtime_error{"Error in read in queue"};
-    }/** else {
-        cout << "@msg :" << msg << endl << flush;
-    } /**/
+    } /** else {
+         cout << "@msg :" << msg << endl << flush;
+     } /**/
 
     return msg;
 }
 
+
+/** ADDED CODE */
+
+/**
+ * @brief Thread receiving data from monitor.
+ */
+void Tasks::Watchdog(void *arg)
+{
+    Message *msgRcv;
+
+    cout << "Start " << __PRETTY_FUNCTION__ << endl
+         << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    /**************************************************************************************/
+    /* The task Watchdog starts here                                                      */
+    /********************************************é******************************************/
+
+    cout << "[WATCHDOG] Monitor connection lost!";
+
+    rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+    robot.Close();
+    rt_mutex_release(&mutex_robot);
+}
+
+
+
+/**
+ * @brief Thread handling control of the battery level
+ */
+void Tasks::BatteryTask(void *arg) {
+    int rs;
+    Message *msgSend;
+    
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+    
+    /**************************************************************************************/
+    /* The task Battery starts here                                                       */
+    /**************************************************************************************/
+
+    rt_task_set_periodic(NULL, TM_NOW, 500000000);
+
+    while (1) {
+        rt_task_wait_period(NULL);
+        cout << "[BATTERY] Update...";
+
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        rs = robotStarted;
+        rt_mutex_release(&mutex_robotStarted);
+
+        // Only if robot stated -> battery reading
+        if (rs == 1) {            
+            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            msgSend = robot.Write(robot.GetBattery());
+            rt_mutex_release(&mutex_robot);
+
+            WriteInQueue(&q_messageToMon, msgSend);
+            cout << "done." << endl << flush;
+        } else {
+            cout << "failed (robot dead). " << endl << flush;
+        }
+    }
+}
