@@ -33,3 +33,9 @@
 
 #
 .vscode
+
+# Projet
+*.mk
+*.bash
+superviseur/dist/
+superviseur/nbproject/

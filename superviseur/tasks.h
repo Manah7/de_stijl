@@ -65,6 +65,7 @@ private:
     ComMonitor monitor;
     ComRobot robot;
     int robotStarted = 0;
+    int watchdog = 0; // 1 if with use WD, 0 else
     int move = MESSAGE_ROBOT_STOP;
     
     /**********************************************************************/
@@ -76,6 +77,8 @@ private:
     RT_TASK th_openComRobot;
     RT_TASK th_startRobot;
     RT_TASK th_move;
+    RT_TASK th_battery;
+    RT_TASK th_monitor;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -92,6 +95,8 @@ private:
     RT_SEM sem_openComRobot;
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
+    RT_SEM sem_close_mon;
+    RT_SEM sem_reloadWD;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -131,6 +136,15 @@ private:
      * @brief Thread handling control of the robot.
      */
     void MoveTask(void *arg);
+    
+    // 
+    void CloseMon(void *arg);
+    
+    // 
+    void BatteryTask(void *arg);
+    
+    //
+    void ReloadWD(void *arg);
     
     /**********************************************************************/
     /* Queue services                                                     */
