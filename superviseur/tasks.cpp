@@ -601,15 +601,17 @@ void Tasks::CloseMon(void *arg) {
     
     rt_sem_p(&sem_close_mon, TM_INFINITE);
     
-    cout << "[MONITOR] Monitor connection lost!";
+    cout << "[CLOSEMONITOR] Monitor connection lost!"<<endl;
     {
         rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
         monitor.Close();
         rt_mutex_release(&mutex_monitor);
-        
+        cout << "[CLOSEMONITOR] Monitor closed !"<<endl;
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
         robot.Stop();
+        cout << "[CLOSEMONITOR] Robot stoped!"<<endl;
         robot.Close();
+        cout << "[CLOSEMONITOR] Robot closed!"<<endl;
         rt_mutex_release(&mutex_robot);
                 
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
@@ -636,7 +638,7 @@ void Tasks::ReloadWD(void *arg) {
     /**************************************************************************************/
 
     rt_sem_p(&sem_reloadWD, TM_INFINITE);
-    rt_task_set_periodic(NULL, TM_NOW, 500000000);
+    rt_task_set_periodic(NULL, TM_NOW, 50000000);
 
     while (counter) {
         rt_task_wait_period(NULL);
@@ -660,13 +662,13 @@ void Tasks::ReloadWD(void *arg) {
             WriteInQueue(&q_messageToMon, msgRWD);
         }
     }
-    
+    cout << "[ROBOT] Robot lost"<<endl;
     // Erreur de transmission détectée !    
     rt_mutex_acquire(&mutex_robot, TM_INFINITE);
     robot.Stop();
     robot.Close();
     rt_mutex_release(&mutex_robot);
-        
+    
     rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
     robotStarted = 0;
     rt_mutex_release(&mutex_robotStarted);
