@@ -27,6 +27,7 @@
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
 #define PRIORITY_TBATTERY 18
+#define PRIORITY_TMONITOR 19
 
 /*
  * Some remarks:
@@ -176,7 +177,7 @@ void Tasks::Init()
              << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_monitor, "th_monitor", 0, PRIORITY_TBATTERY, 0))
+    if (err = rt_task_create(&th_monitor, "th_monitor", 0, PRIORITY_TMONITOR, 0))
     {
         cerr << "Error task create: " << strerror(-err) << endl
              << flush;
@@ -313,7 +314,9 @@ void Tasks::ServerTask(void *arg)
     rt_sem_broadcast(&sem_serverOk);
     
     // Serveur ouvert, on débloque la com' robot:
+    cout << "Serveur ok, unlocking COM robot..." << endl << flush;
     rt_sem_v(&sem_openComRobot);
+    cout << "COM unlocked." << endl;
     
 }
 
@@ -508,6 +511,7 @@ void Tasks::MoveTask(void *arg)
 {
     int rs;
     int cpMove;
+    Message *ans;
 
     cout << "Start " << __PRETTY_FUNCTION__ << endl
          << flush;
@@ -620,6 +624,7 @@ void Tasks::CloseMon(void *arg) {
  */
 void Tasks::ReloadWD(void *arg) {
     int rs;
+    int counter = 3;
     Message *msgRWD;
    
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
@@ -633,7 +638,7 @@ void Tasks::ReloadWD(void *arg) {
     rt_sem_p(&sem_reloadWD, TM_INFINITE);
     rt_task_set_periodic(NULL, TM_NOW, 500000000);
 
-    while (1) {
+    while (counter) {
         rt_task_wait_period(NULL);
         
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
@@ -645,15 +650,32 @@ void Tasks::ReloadWD(void *arg) {
             msgRWD = robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
             rt_mutex_release(&mutex_robot);
             
+            // Detection des erreurs (f. 8)
+            if (msgRWD->GetID() == MESSAGE_ANSWER_ROBOT_TIMEOUT) {
+                --counter;
+            } else {
+                counter = 3;
+            }
+            
             WriteInQueue(&q_messageToMon, msgRWD);
         }
     }
+    
+    // Erreur de transmission détectée !    
+    rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+    robot.Stop();
+    robot.Close();
+    rt_mutex_release(&mutex_robot);
+        
+    rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+    robotStarted = 0;
+    rt_mutex_release(&mutex_robotStarted);
 }
 
 
 
 /**
- * @brief Thread handling control of the battery level
+ * @brief Thread handling control of the battery level (f.13)
  */
 void Tasks::BatteryTask(void *arg) {
     int rs;
@@ -691,3 +713,4 @@ void Tasks::BatteryTask(void *arg) {
         }
     }
 }
+
