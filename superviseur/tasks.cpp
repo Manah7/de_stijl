@@ -28,7 +28,7 @@
 #define PRIORITY_TCAMERA 21
 #define PRIORITY_TBATTERY 18
 #define PRIORITY_TMONITOR 19
-
+#define PRIORITY_TWATCHDOG 2
 /*
  * Some remarks:
  * 1- This program is mostly a template. It shows you how to create tasks, semaphore
@@ -183,6 +183,12 @@ void Tasks::Init()
              << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_create(&th_watchdog, "th_watchdog", 0, PRIORITY_TWATCHDOG, 0))
+    {
+        cerr << "Error task create: " << strerror(-err) << endl
+             << flush;
+        exit(EXIT_FAILURE);
+    }
     
     
     
@@ -259,6 +265,13 @@ void Tasks::Run()
              << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_start(&th_watchdog, (void (*)(void *)) & Tasks::ReloadWD, this))
+    {
+        cerr << "Error task start: " << strerror(-err) << endl
+             << flush;
+        exit(EXIT_FAILURE);
+    }
+    
     
 
     cout << "Tasks launched" << endl
@@ -526,7 +539,7 @@ void Tasks::MoveTask(void *arg)
     while (1)
     {
         rt_task_wait_period(NULL);
-        cout << "Periodic movement update";
+        //cout << "Periodic movement update";
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
@@ -536,7 +549,7 @@ void Tasks::MoveTask(void *arg)
             cpMove = move;
             rt_mutex_release(&mutex_move);
 
-            cout << " move: " << cpMove;
+            //cout << " move: " << cpMove;
 
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             robot.Write(new Message((MessageID)cpMove));
@@ -608,7 +621,7 @@ void Tasks::CloseMon(void *arg) {
         rt_mutex_release(&mutex_monitor);
         cout << "[CLOSEMONITOR] Monitor closed !"<<endl;
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        robot.Stop();
+        robot.Write(robot.Stop());
         cout << "[CLOSEMONITOR] Robot stoped!"<<endl;
         robot.Close();
         cout << "[CLOSEMONITOR] Robot closed!"<<endl;
@@ -638,10 +651,11 @@ void Tasks::ReloadWD(void *arg) {
     /**************************************************************************************/
 
     rt_sem_p(&sem_reloadWD, TM_INFINITE);
-    rt_task_set_periodic(NULL, TM_NOW, 50000000);
+    rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
     while (counter) {
         rt_task_wait_period(NULL);
+        cout << "RELOADING WD"<<endl;
         
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
@@ -659,7 +673,7 @@ void Tasks::ReloadWD(void *arg) {
                 counter = 3;
             }
             
-            WriteInQueue(&q_messageToMon, msgRWD);
+            //WriteInQueue(&q_messageToRobot, msgRWD);
         }
     }
     cout << "[ROBOT] Robot lost"<<endl;
